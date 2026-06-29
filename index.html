@@ -3,111 +3,246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
-    <title>TT语音连麦开黑房 - 终极无Bug版</title>
+    <title>TT电竞语音大厅 - 终极至尊版</title>
     <script src="https://cdn.bootcdn.net/ajax/libs/mqtt/4.2.8/mqtt.min.js"></script>
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.22.0.js"></script>
     
     <style>
         :root {
-            --bg-color: #12121a;
-            --panel-color: #1c1c28;
-            --accent-color: #7b2cbf;
+            --bg-color: #0d0c12;
+            --panel-color: #14121f;
+            --accent-color: #9d4edd;
             --text-color: #ffffff;
-            --text-secondary: #8e8e93;
-            --seat-speaking: #00f5d4;
+            --text-secondary: #7e7a93;
+            --seat-speaking: #00ffff;
+            --danger-color: #ff007f;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", Arial, sans-serif; background-color: #09090d; color: var(--text-color); height: 100dvh; display: flex; justify-content: center; align-items: center; overflow: hidden; -webkit-user-select: none; user-select: none; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", Arial, sans-serif; 
+            background-color: #050508; color: var(--text-color); 
+            height: 100dvh; display: flex; justify-content: center; align-items: center; overflow: hidden; 
+            -webkit-user-select: none; user-select: none; 
+        }
         input { -webkit-user-select: text; user-select: text; }
         
-        .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 15, 0.97); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
-        .login-box { width: 100%; max-width: 360px; background: var(--panel-color); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 20px; }
-        .login-box h2 { text-align: center; font-size: 19px; }
-        .nickname-input { width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); padding: 12px 15px; border-radius: 12px; color: #fff; font-size: 15px; outline: none; text-align: center; }
-        .avatar-selector { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .avatar-option { width: 55px; height: 55px; border-radius: 50%; background: rgba(255,255,255,0.05); display: flex; justify-content: center; align-items: center; cursor: pointer; border: 2px solid transparent; }
-        .avatar-option.selected { border-color: var(--accent-color); background: rgba(123, 44, 191, 0.2); }
-        .avatar-option svg { width: 40px; height: 40px; }
-        .enter-btn { background: linear-gradient(135deg, #9d4edd, var(--accent-color)); color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer; }
-
-        .room-container { width: 100%; height: 100dvh; background: radial-gradient(circle at top, #2c1a4d 0%, var(--bg-color) 70%); display: flex; flex-direction: column; position: relative; overflow: hidden; }
-        @media (min-width: 768px) { .room-container { width: 414px; height: 820px; border-radius: 24px; border: 4px solid #23153c; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7); } body { background: radial-gradient(circle, #1a1525 0%, #050508 100%); } }
+        /* 1. TT风登录设置弹窗 */
+        .login-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: linear-gradient(180deg, #181528 0%, var(--bg-color) 100%); z-index: 9999; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; 
+        }
+        .login-box { 
+            width: 100%; max-width: 360px; background: var(--panel-color); padding: 30px 25px; 
+            border-radius: 24px; border: 1px solid rgba(157, 78, 221, 0.2); display: flex; flex-direction: column; gap: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .login-box h2 { text-align: center; font-size: 22px; color: #fff; text-shadow: 0 0 10px var(--accent-color); }
+        .nickname-input { 
+            width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); 
+            padding: 14px 15px; border-radius: 14px; color: #fff; font-size: 15px; outline: none; text-align: center; 
+        }
+        .nickname-input:focus { border-color: var(--accent-color); box-shadow: 0 0 10px rgba(157, 78, 221, 0.3); }
         
-        .room-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; }
-        .room-title h3 { font-size: 16px; font-weight: 600; }
+        /* 自定义头像选择区 */
+        .avatar-upload-area {
+            display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 5px 0;
+        }
+        .preview-avatar-wrap {
+            width: 75px; height: 75px; border-radius: 50%; border: 2px dashed var(--accent-color);
+            display: flex; justify-content: center; align-items: center; overflow: hidden; background: rgba(255,255,255,0.02);
+            position: relative; cursor: pointer;
+        }
+        .preview-avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .preview-avatar-wrap svg { width: 40px; height: 40px; fill: var(--text-secondary); }
+        .upload-hint { font-size: 11px; color: var(--text-secondary); }
+        
+        .enter-btn { 
+            background: linear-gradient(135deg, #b5179e, var(--accent-color)); color: white; border: none; 
+            padding: 15px; font-size: 16px; font-weight: bold; border-radius: 14px; cursor: pointer; 
+            box-shadow: 0 5px 20px rgba(181, 23, 158, 0.4); transition: all 0.2s;
+        }
+        .enter-btn:active { transform: scale(0.98); }
+
+        /* 2. 核心大厅布局 (高仿TT语音暗黑赛博风) */
+        .room-container { 
+            width: 100%; height: 100dvh; background: #0c0b14;
+            display: flex; flex-direction: column; position: relative; overflow: hidden; 
+        }
+        
+        @media (min-width: 768px) { 
+            .room-container { width: 414px; height: 840px; border-radius: 28px; border: 4px solid #1e1b30; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8); } 
+            body { background: radial-gradient(circle, #1a1525 0%, #030305 100%); } 
+        }
+        
+        .room-header { padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; background: #110f1d; border-bottom: 1px solid rgba(255,255,255,0.03); flex-shrink: 0; }
+        .room-title h3 { font-size: 16px; font-weight: 600; color: #fff; }
         .room-title p { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
         
-        .seats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px 8px; padding: 15px 10px; flex-shrink: 0; }
-        .seat-item { display: flex; flex-direction: column; align-items: center; }
-        .avatar-wrap { width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.06); position: relative; display: flex; justify-content: center; align-items: center; border: 2px solid transparent; }
-        .seat-item.speaking .avatar-wrap { border-color: var(--seat-speaking); box-shadow: 0 0 12px rgba(0, 245, 212, 0.6); }
+        /* 独立调音与房主控制面板 */
+        .control-panel {
+            background: #151326; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; gap: 15px; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 12px; flex-shrink: 0;
+        }
+        .volume-slider-wrap { display: flex; align-items: center; gap: 8px; flex: 1; color: var(--text-secondary); }
+        .volume-slider { flex: 1; accent-color: var(--accent-color); height: 4px; cursor: pointer; }
+        .host-checkbox-wrap { display: flex; align-items: center; gap: 5px; color: var(--text-secondary); font-weight: bold; }
+        .host-checkbox-wrap input { accent-color: var(--danger-color); width: 15px; height: 15px; cursor: pointer; }
+
+        /* TT经典的 4x2 麦位矩阵 */
+        .seats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 10px; padding: 18px 12px; background: #0c0b14; flex-shrink: 0; }
+        .seat-item { display: flex; flex-direction: column; align-items: center; position: relative; }
+        
+        .avatar-wrap { 
+            width: 56px; height: 56px; border-radius: 50%; background: #1b192e; 
+            position: relative; display: flex; justify-content: center; align-items: center; border: 2px solid transparent; 
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
+        }
+        .avatar-wrap img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
         .avatar-wrap svg { width: 36px; height: 36px; }
-        .seat-index { position: absolute; bottom: -3px; background: var(--accent-color); font-size: 9px; padding: 1px 5px; border-radius: 10px; white-space: nowrap; }
-        .user-name { font-size: 11px; color: var(--text-secondary); margin-top: 6px; max-width: 58px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
+        
+        /* 说话时的霓虹青色外发光 */
+        .seat-item.speaking .avatar-wrap { border-color: var(--seat-speaking); box-shadow: 0 0 14px rgba(0, 245, 212, 0.7); }
+        .seat-index { position: absolute; bottom: -4px; background: linear-gradient(90deg, #7b2cbf, #b5179e); font-size: 9px; padding: 1px 6px; border-radius: 10px; white-space: nowrap; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .user-name { font-size: 11px; color: var(--text-secondary); margin-top: 8px; max-width: 62px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; text-align: center; }
+        
+        /* 头像上浮动的趣味大表情气泡 */
+        .avatar-expression-pop {
+            position: absolute; top: -15px; background: rgba(157, 78, 221, 0.9); padding: 2px 6px; border-radius: 10px; font-size: 16px;
+            animation: bouncePop 0.4s ease-out forwards; z-index: 10; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            display: none; pointer-events: none;
+        }
 
-        .chat-area { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; -webkit-overflow-scrolling: touch; }
-        .msg-item { background: rgba(255,255,255,0.04); padding: 8px 12px; border-radius: 12px; font-size: 13px; max-width: 85%; align-self: flex-start; line-height: 1.4; word-break: break-all; }
-        .msg-item .sender { color: #17c3b2; font-weight: bold; margin-right: 5px; display: inline-flex; align-items: center; gap: 4px; }
-        .msg-system { background: rgba(234, 84, 85, 0.1); color: #ea5455; align-self: center; font-size: 11px; text-align: center; }
+        /* 快捷禁言悬浮遮罩 (仅限房主可见或操作) */
+        .mute-overlay-btn {
+            position: absolute; top: 0; left: calc(50% - 28px); width: 56px; height: 56px; border-radius: 50%;
+            background: rgba(255, 0, 127, 0.85); display: flex; justify-content: center; align-items: center;
+            font-size: 11px; color: #fff; font-weight: bold; cursor: pointer; opacity: 0; transition: opacity 0.2s; z-index: 5;
+        }
+        .seat-item:hover .mute-overlay-btn { opacity: 1; }
 
-        .emoji-bar { background: #191926; padding: 8px 15px; display: flex; gap: 18px; overflow-x: auto; border-top: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; scrollbar-width: none; }
-        .emoji-bar::-webkit-scrollbar { display: none; }
-        .emoji-btn { font-size: 20px; cursor: pointer; transition: transform 0.1s; }
+        /* 公屏泡泡聊天区 */
+        .chat-area { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; -webkit-overflow-scrolling: touch; background: linear-gradient(180deg, #0c0b14 0%, #11101a 100%); }
+        .msg-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.02); padding: 9px 12px; border-radius: 14px; font-size: 13px; max-width: 85%; align-self: flex-start; line-height: 1.4; word-break: break-all; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .msg-item .sender { color: #00f5d4; font-weight: bold; margin-right: 6px; display: inline-flex; align-items: center; gap: 5px; }
+        .msg-item .sender img { width: 16px; height: 16px; border-radius: 50%; object-fit: cover; }
+        .msg-system { background: rgba(255, 0, 127, 0.08); border: 1px solid rgba(255, 0, 127, 0.15); color: var(--danger-color); align-self: center; font-size: 11px; text-align: center; width: 90%; }
+        
+        /* 聊天图片样式 */
+        .chat-img { max-width: 140px; max-height: 140px; border-radius: 10px; margin-top: 5px; display: block; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
 
-        .bottom-bar { padding: 10px 15px calc(10px + env(safe-area-inset-bottom)); background: #161622; display: flex; align-items: center; gap: 10px; flex-shrink: 0; position: relative; z-index: 999; }
-        .input-box { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 20px; color: #fff; font-size: 14px; outline: none; }
-        .btn { background: var(--accent-color); border: none; color: white; padding: 10px 16px; border-radius: 20px; font-size: 13px; cursor: pointer; font-weight: bold; }
-        .btn-icon { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; flex-shrink: 0; }
-        .btn-icon.active { background: #ea5455; }
+        /* 趣味互动控制区域 */
+        .interaction-panel {
+            background: #151326; border-top: 1px solid rgba(255,255,255,0.03); flex-shrink: 0; display: flex; flex-direction: column;
+        }
+        .tab-bar { display: flex; border-bottom: 1px solid rgba(255,255,255,0.02); }
+        .tab-btn { flex: 1; padding: 8px; font-size: 11px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-weight: bold; text-align: center; }
+        .tab-btn.active { color: #fff; background: rgba(255,255,255,0.02); border-bottom: 2px solid var(--accent-color); }
+        .item-row { padding: 8px 12px; display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; }
+        .item-row::-webkit-scrollbar { display: none; }
+        .inter-btn { font-size: 22px; cursor: pointer; transition: transform 0.1s; }
+        .inter-btn:active { transform: scale(1.3); }
+
+        /* 底部操作控制栏 */
+        .bottom-bar { padding: 12px 15px calc(12px + env(safe-area-inset-bottom)); background: #110f1d; display: flex; align-items: center; gap: 10px; flex-shrink: 0; position: relative; z-index: 999; border-top: 1px solid rgba(255,255,255,0.03); }
+        .input-box { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 11px 15px; border-radius: 20px; color: #fff; font-size: 14px; outline: none; }
+        .input-box:focus { border-color: var(--accent-color); }
+        
+        .image-send-holder { font-size: 22px; cursor: pointer; padding: 0 4px; display: flex; align-items: center; justify-content: center; }
+        .btn-icon { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.05); display: flex; justify-content: center; align-items: center; font-size: 18px; cursor: pointer; flex-shrink: 0; }
+        .btn-icon.active { background: var(--danger-color); box-shadow: 0 0 10px var(--danger-color); }
+
+        @keyframes bouncePop {
+            0% { transform: translateY(10px) scale(0.5); opacity: 0; }
+            50% { transform: translateY(-5px) scale(1.1); }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body>
 
 <div class="login-overlay" id="loginOverlay">
     <div class="login-box">
-        <h2>创建开黑档案</h2>
-        <input type="text" class="nickname-input" id="nicknameInput" placeholder="请输入开黑昵称(支持中文)" maxlength="8">
-        <p style="font-size:12px; color:var(--text-secondary); text-align:center;">挑选一个系统头像</p>
-        <div class="avatar-selector" id="avatarSelector">
-            <div class="avatar-option selected" onclick="selectAvatar(0)"><svg viewBox="0 0 1024 1024"><path d="M512 512c141.4 0 256-114.6 256-256S653.4 0 512 0 256 114.6 256 256s114.6 256 256 256zM512 614.4c-243.2 0-512 121.6-512 364.8v44.8h1024v-44.8c0-243.2-268.8-364.8-512-364.8z" fill="#ff4d6d"/></svg></div>
-            <div class="avatar-option" onclick="selectAvatar(1)"><svg viewBox="0 0 1024 1024"><path d="M512 512c141.4 0 256-114.6 256-256S653.4 0 512 0 256 114.6 256 256s114.6 256 256 256zM512 614.4c-243.2 0-512 121.6-512 364.8v44.8h1024v-44.8c0-243.2-268.8-364.8-512-364.8z" fill="#00f5d4"/></svg></div>
-            <div class="avatar-option" onclick="selectAvatar(2)"><svg viewBox="0 0 1024 1024"><path d="M512 512c141.4 0 256-114.6 256-256S653.4 0 512 0 256 114.6 256 256s114.6 256 256 256zM512 614.4c-243.2 0-512 121.6-512 364.8v44.8h1024v-44.8c0-243.2-268.8-364.8-512-364.8z" fill="#9d4edd"/></svg></div>
-            <div class="avatar-option" onclick="selectAvatar(3)"><svg viewBox="0 0 1024 1024"><path d="M512 512c141.4 0 256-114.6 256-256S653.4 0 512 0 256 114.6 256 256s114.6 256 256 256zM512 614.4c-243.2 0-512 121.6-512 364.8v44.8h1024v-44.8c0-243.2-268.8-364.8-512-364.8z" fill="#ffb703"/></svg></div>
+        <h2>电竞赛事语音大厅</h2>
+        
+        <div class="avatar-upload-area">
+            <div class="preview-avatar-wrap" onclick="document.getElementById('avatarFileInput').click()" id="avatarPreview">
+                <svg id="defaultAvatarSvg" viewBox="0 0 1024 1024"><path d="M512 512c141.4 0 256-114.6 256-256S653.4 0 512 0 256 114.6 256 256s114.6 256 256 256zM512 614.4c-243.2 0-512 121.6-512 364.8v44.8h1024v-44.8c0-243.2-268.8-364.8-512-364.8z"/></svg>
+            </div>
+            <span class="upload-hint">点击圆形框更换自定义头像 (可选)</span>
+            <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="uploadCustomAvatar(this)">
         </div>
-        <button class="enter-btn" onclick="joinRoomAction()">进入大厅连麦</button>
+
+        <input type="text" class="nickname-input" id="nicknameInput" placeholder="输入拉风的网名 (支持中文)" maxlength="8">
+        <button class="enter-btn" onclick="joinRoomAction()">激活动态语音并合流</button>
     </div>
 </div>
 
 <div class="room-container">
     <div class="room-header">
         <div class="room-title">
-            <h3>TT语音·全端高可用厅</h3>
-            <p>专属通信频道: <span style="color:#00f5d4;">China_Main_999</span></p>
+            <h3>TT高拟态开黑竞技厅</h3>
+            <p>全域动态信道: <span style="color:#ff007f;">China_Pro_999</span></p>
         </div>
-        <button class="btn" style="background:#ea5455;" onclick="leaveRoom()">退出</button>
+        <button class="btn" style="background:var(--danger-color); border:none; color:white; padding:8px 14px; border-radius:14px; font-size:12px; font-weight:bold; cursor:pointer;" onclick="leaveRoom()">退出</button>
     </div>
+
+    <div class="control-panel">
+        <div class="volume-slider-wrap">
+            <span>🔊 队友音量</span>
+            <input type="range" class="volume-slider" min="0" max="100" value="80" oninput="adjustMasterVolume(this.value)">
+        </div>
+        <div class="host-checkbox-wrap">
+            <input type="checkbox" id="isHostCheckbox" onchange="toggleHostIdentity(this.checked)">
+            <label for="isHostCheckbox" style="color:var(--danger-color);">我是房主(可无条件控麦)</label>
+        </div>
+    </div>
+
     <div class="seats-grid" id="seatsGrid"></div>
+
     <div class="chat-area" id="chatArea">
-        <div class="msg-item msg-system">【安全提示】本房间已注入声网全双工语音桥。默认闭麦，点击下方 🔇 按钮即可连麦说话。</div>
+        <div class="msg-item msg-system">【系统公告】房间已成功挂载声网商业特调合流。双击或悬停麦位可执行房主强制静音禁言命令。</div>
     </div>
-    <div class="emoji-bar">
-        <span class="emoji-btn" onclick="insertEmoji('😂')">😂</span>
-        <span class="emoji-btn" onclick="insertEmoji('🔥')">🔥</span>
-        <span class="emoji-btn" onclick="insertEmoji('👍')">👍</span>
-        <span class="emoji-btn" onclick="insertEmoji('❤️')">❤️</span>
-        <span class="emoji-btn" onclick="insertEmoji('👑')">👑</span>
-        <span class="emoji-btn" onclick="insertEmoji('💩')">💩</span>
+
+    <div class="interaction-panel">
+        <div class="tab-bar">
+            <div class="tab-btn active" id="tab0" onclick="switchTab(0)">公屏文本表情</div>
+            <div class="tab-btn" id="tab1" onclick="switchTab(1)">麦位头像轰炸表情</div>
+        </div>
+        <div class="item-row" id="row_emojis">
+            <span class="inter-btn" onclick="insertTextEmoji('😂')">😂</span>
+            <span class="inter-btn" onclick="insertTextEmoji('🔥')">🔥</span>
+            <span class="inter-btn" onclick="insertTextEmoji('👍')">👍</span>
+            <span class="inter-btn" onclick="insertTextEmoji('👑')">👑</span>
+            <span class="inter-btn" onclick="insertTextEmoji('❤️')">❤️</span>
+            <span class="inter-btn" onclick="insertTextEmoji('💩')">💩</span>
+            <span class="inter-btn" onclick="insertTextEmoji('⚡')">⚡</span>
+            <span class="inter-btn" onclick="insertTextEmoji('🌟')">🌟</span>
+        </div>
+        <div class="item-row" id="row_avatar_anims" style="display: none;">
+            <span class="inter-btn" onclick="blastAvatarExpression('🎉')">🎉 庆祝</span>
+            <span class="inter-btn" onclick="blastAvatarExpression('💢')">💢 生气</span>
+            <span class="inter-btn" onclick="blastAvatarExpression('❤️')">❤️ 心动</span>
+            <span class="inter-btn" onclick="blastAvatarExpression('😮')">😮 震惊</span>
+            <span class="inter-btn" onclick="blastAvatarExpression('💤')">💤 犯困</span>
+            <span class="inter-btn" onclick="blastAvatarExpression('💸')">💸 暴富</span>
+        </div>
     </div>
+
     <div class="bottom-bar">
         <div class="btn-icon" id="micBtn" onclick="toggleMic()">🔇</div>
-        <input type="text" class="input-box" id="msgInput" placeholder="跟队友聊点什么吧..." autocomplete="off">
+        <div class="image-send-holder" onclick="document.getElementById('chatImageInput').click()">🖼️</div>
+        <input type="file" id="chatImageInput" accept="image/*" style="display: none;" onchange="sendChatImage(this)">
+        
+        <input type="text" class="input-box" id="msgInput" placeholder="嗨起来，畅所欲言..." autocomplete="off">
         <button class="btn" onclick="sendMsg()">发送</button>
     </div>
 </div>
 
 <script>
-    const AVATAR_COLORS = ["#ff4d6d", "#00f5d4", "#9d4edd", "#ffb703"];
-    const CHANNEL_NAME = "perfect_agora_tt_room_999";
+    // 默认内置兜底基础头像矢量图
+    const BASE_SVG = `<svg viewBox="0 0 1024 1024"><path d="M512 512c141.4 0 256-114.6 256-256S653.4 0 512 0 256 114.6 256 256s114.6 256 256 256zM512 614.4c-243.2 0-512 121.6-512 364.8v44.8h1024v-44.8c0-243.2-268.8-364.8-512-364.8z" fill="#524d75"/></svg>`;
+    const CHANNEL_NAME = "agora_tt_pro_room_999";
     const AGORA_APP_ID = "3adf636b90314ac3901887e1560c0db5"; 
 
     let mqttClient = null;
@@ -115,33 +250,103 @@
     let localAudioTrack = null;
     
     let myNickname = "";
-    let myAgoraUid = 0; // 核心修复：专门给声网使用的纯数字合法UID
-    let selectedAvatarIndex = 0;
+    let myAgoraUid = 0; 
+    let myCustomAvatarBase64 = ""; // 自定义头像Base64容器
     let isMuted = true;
+    let isHost = false; // 是否申领房主特权
     let roomUsers = {}; 
 
+    // iOS微信内核音频通路桥接特权激活
     document.addEventListener("WeixinJSBridgeReady", function () {
         const fakeCtx = new (window.AudioContext || window.webkitAudioContext)();
         if(fakeCtx) fakeCtx.resume();
     }, false);
 
-    function selectAvatar(index) {
-        selectedAvatarIndex = index;
-        const options = document.querySelectorAll('.avatar-option');
-        options.forEach((opt, i) => opt.classList.toggle('selected', i === index));
+    // 压缩提取头像/图片静态质量函数，避免MQTT信道阻塞
+    function compressImage(file, maxSize, quality, callback) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let width = img.width; let height = img.height;
+                if (width > height) {
+                    if (width > maxSize) { height *= maxSize / width; width = maxSize; }
+                } else {
+                    if (height > maxSize) { width *= maxSize / height; height = maxSize; }
+                }
+                canvas.width = width; canvas.height = height;
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                callback(canvas.toDataURL('image/jpeg', quality));
+            }
+            img.src = e.target.result;
+        }
+        reader.readAsDataURL(file);
     }
 
-    function insertEmoji(emoji) {
+    // 处理个人自定义头像上传读取
+    function uploadCustomAvatar(input) {
+        if(!input.files || !input.files[0]) return;
+        // 限制尺寸为100px进行高度压缩，减小基础报文
+        compressImage(input.files[0], 100, 0.8, function(base64Data) {
+            myCustomAvatarBase64 = base64Data;
+            document.getElementById('avatarPreview').innerHTML = `<img src="${base64Data}">`;
+        });
+    }
+
+    // 处理群发图片功能
+    function sendChatImage(input) {
+        if(!input.files || !input.files[0]) return;
+        // 限制最大传输规格为250px，保证画质的同时能秒发
+        compressImage(input.files[0], 250, 0.7, function(compressedBase64) {
+            publishMsg({ type: 'image_msg', sender: myNickname, avatar: myCustomAvatarBase64, imgData: compressedBase64 });
+        });
+        input.value = ''; // 释放
+    }
+
+    function switchTab(idx) {
+        document.getElementById('tab0').classList.toggle('active', idx === 0);
+        document.getElementById('tab1').classList.toggle('active', idx === 1);
+        document.getElementById('row_emojis').style.display = idx === 0 ? 'flex' : 'none';
+        document.getElementById('row_avatar_anims').style.display = idx === 1 ? 'flex' : 'none';
+    }
+
+    function insertTextEmoji(emoji) {
         const input = document.getElementById('msgInput');
         input.value += emoji; input.focus();
     }
 
+    // 触发并广播头像上面的大表情轰炸动作
+    function blastAvatarExpression(expressionEmoji) {
+        if(!mqttClient || !mqttClient.connected) return;
+        publishMsg({ type: 'avatar_express', user: myNickname, expr: expressionEmoji });
+    }
+
+    // 申领或关闭房主管理权限
+    function toggleHostIdentity(checked) {
+        isHost = checked;
+        appendSystemMsg(isHost ? "你已披上管理员房主法袍，拥有点击任意麦位禁言控麦的权限！" : "你已卸任管理员身份。");
+    }
+
+    // 核心管理逻辑：房主强制执行远端设备禁言
+    function execRemoteMuteCommand(targetUser) {
+        if(!isHost) {
+            alert("你当前不是房主，无法强制闭麦他人！请先勾选上方的「我是房主」进行测试。");
+            return;
+        }
+        if(targetUser === myNickname) {
+            alert("你不能禁言你自己哦。");
+            return;
+        }
+        if(confirm(`【房主权限】确定要强制切断并禁言 [${targetUser}] 的麦克风吗？`)) {
+            publishMsg({ type: 'force_mute_cmd', target: targetUser });
+        }
+    }
+
     function joinRoomAction() {
         const input = document.getElementById('nicknameInput').value.trim();
-        if(!input) { alert("昵称不能为空哦！"); return; }
+        if(!input) { alert("网名不能为空！"); return; }
         myNickname = input;
-        
-        // 核心修复：随机生成 1 到 10000 之间的纯数字 UID，完美符合声网参数规范
         myAgoraUid = Math.floor(Math.random() * 9999) + 1; 
 
         document.getElementById('loginOverlay').style.display = 'none';
@@ -161,8 +366,10 @@
         for(let i = 1; i <= 8; i++) {
             grid.innerHTML += `
                 <div class="seat-item" id="seat_${i}">
+                    <div class="avatar-expression-pop" id="pop_${i}">🎉</div>
+                    <div class="mute-overlay-btn" id="mute_btn_${i}">禁言</div>
                     <div class="avatar-wrap">
-                        <svg viewBox="0 0 1024 1024"><path d="M512 512c141.4 0 256-114.6 256-256S653.4 0 512 0 256 114.6 256 256s114.6 256 256 256zM512 614.4c-243.2 0-512 121.6-512 364.8v44.8h1024v-44.8c0-243.2-268.8-364.8-512-364.8z" fill="#44445c"/></svg>
+                        ${BASE_SVG}
                         <span class="seat-index">${i === 1 ? '房主' : i + '麦'}</span>
                     </div>
                     <span class="user-name">空闲麦位</span>
@@ -171,6 +378,7 @@
         }
     }
 
+    // --- 🍏 声网音频流引擎与主音量大小调控 ---
     async function initAgoraEngine() {
         try {
             agoraClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
@@ -179,6 +387,9 @@
                 await agoraClient.subscribe(user, mediaType);
                 if (mediaType === "audio") {
                     user.audioTrack.play(); 
+                    // 默认赋予滑块对应初始音量
+                    let currentVol = document.querySelector('.volume-slider').value;
+                    user.audioTrack.setVolume(parseInt(currentVol));
                 }
             });
 
@@ -189,17 +400,27 @@
                 });
             });
 
-            // 核心修复：不再传输带中文的 myNickname，而是传输纯数字 myAgoraUid
             await agoraClient.join(AGORA_APP_ID, CHANNEL_NAME, null, myAgoraUid);
-            appendSystemMsg("🔊 语音大厅初始化成功！环境已就绪。");
+            appendSystemMsg("🔊 声网高可靠音频混音信道加载就绪。");
 
         } catch (e) {
-            alert("声网引擎初始化失败！原因详情: " + e.message);
+            alert("声网引擎初始化失败，请确保在 HTTPS 网址下访问！详细因由: " + e.message);
         }
     }
 
+    // 动态拉动控制全员音量大小
+    function adjustMasterVolume(value) {
+        if(!agoraClient) return;
+        // 声网 Web SDK 针对远端音频流音量调控
+        agoraClient.remoteUsers.forEach(user => {
+            if (user.audioTrack) {
+                user.audioTrack.setVolume(parseInt(value));
+            }
+        });
+    }
+
     async function toggleMic() {
-        if(!agoraClient) { alert("语音大厅尚未启动"); return; }
+        if(!agoraClient) { alert("语音大厅尚未激活"); return; }
         isMuted = !isMuted;
         const micBtn = document.getElementById('micBtn');
 
@@ -212,49 +433,67 @@
 
             if(isMuted) {
                 micBtn.innerText = "🔇"; micBtn.classList.add('active');
-                appendSystemMsg("你已主动闭麦");
+                appendSystemMsg("你已关闭麦克风。");
             } else {
                 micBtn.innerText = "🎤"; micBtn.classList.remove('active');
-                appendSystemMsg("麦克风已打开，可以说话啦！");
+                appendSystemMsg("麦克风已就绪，实时语聊中！");
             }
             publishMsg({ type: 'mic', user: myNickname, isMuted: isMuted });
         } catch (err) {
             isMuted = true; micBtn.innerText = "🔇"; micBtn.classList.add('active');
-            alert("无法获取麦克风。请确保当前处于 https:// 线上网址环境，并同意了浏览器的录音权限！");
+            alert("开启麦克风失败，请检查浏览器是否已拒绝授信录音特权！");
         }
     }
 
+    // --- 🚀 核心数据链路（同步文字、自定义头像、大表情轰炸、房主管理禁言） ---
     function initMqttChannel() {
         const brokerUrl = 'wss://broker.emqx.io:8084/mqtt'; 
-        mqttClient = mqtt.connect(brokerUrl, { connectTimeout: 4000, clientId: 'tt_f_' + Math.random().toString(16).substr(2, 8) });
+        mqttClient = mqtt.connect(brokerUrl, { connectTimeout: 4000, clientId: 'tt_ultra_' + Math.random().toString(16).substr(2, 8) });
 
         mqttClient.on('connect', () => {
             mqttClient.subscribe(CHANNEL_NAME);
-            // 核心修复：把自己的纯数字 agoraUid 一并广播给房间里的人
-            publishMsg({ type: 'join', user: myNickname, agoraUid: myAgoraUid, avatarIdx: selectedAvatarIndex, isMuted: isMuted });
+            publishMsg({ type: 'join', user: myNickname, agoraUid: myAgoraUid, avatar: myCustomAvatarBase64, isMuted: isMuted });
         });
 
         mqttClient.on('message', (topic, packet) => {
             try {
                 const data = JSON.parse(packet.toString());
+                
                 if (data.type === 'join') {
-                    roomUsers[data.user] = { agoraUid: data.agoraUid, avatarIdx: data.avatarIdx, isMuted: data.isMuted };
+                    roomUsers[data.user] = { agoraUid: data.agoraUid, avatar: data.avatar, isMuted: data.isMuted };
                     refreshSeatsLayout();
-                    appendSystemMsg(`${data.user} 降临开黑大厅`);
+                    appendSystemMsg(`${data.user} 降临开黑厅`);
                     if(data.user !== myNickname) {
-                        publishMsg({ type: 'sync_resp', user: myNickname, agoraUid: myAgoraUid, avatarIdx: selectedAvatarIndex, isMuted: isMuted });
+                        publishMsg({ type: 'sync_resp', user: myNickname, agoraUid: myAgoraUid, avatar: myCustomAvatarBase64, isMuted: isMuted });
                     }
                 } 
                 else if (data.type === 'sync_resp') {
-                    roomUsers[data.user] = { agoraUid: data.agoraUid, avatarIdx: data.avatarIdx, isMuted: data.isMuted };
+                    roomUsers[data.user] = { agoraUid: data.agoraUid, avatar: data.avatar, isMuted: data.isMuted };
                     refreshSeatsLayout();
                 }
                 else if (data.type === 'chat') {
-                    appendChatMsg(data.sender, data.avatarIdx, data.text);
+                    appendChatMsg(data.sender, data.avatar, data.text, false);
                 } 
+                else if (data.type === 'image_msg') {
+                    appendChatMsg(data.sender, data.avatar, data.imgData, true);
+                }
                 else if (data.type === 'mic') {
                     if(roomUsers[data.user]) roomUsers[data.user].isMuted = data.isMuted;
                     refreshSeatsLayout();
+                }
+                // 收到来自房主的强制禁言裁决广播
+                else if (data.type === 'force_mute_cmd') {
+                    if(data.target === myNickname) {
+                        alert("【警报】你已被房主强制执行远端闭麦禁言！");
+                        // 如果当前是开麦的，强行转为闭麦
+                        if(!isMuted) {
+                            toggleMic();
+                        }
+                    }
+                }
+                // 收到大表情轰炸动作
+                else if (data.type === 'avatar_express') {
+                    triggerAvatarExpressionAnimation(data.user, data.expr);
                 }
                 else if (data.type === 'leave') {
                     delete roomUsers[data.user];
@@ -272,17 +511,43 @@
             const seatId = index + 1;
             const userData = roomUsers[username];
             const seatDom = document.getElementById(`seat_${seatId}`);
+            
             if(seatDom) {
-                seatDom.querySelector('.avatar-wrap svg').innerHTML = `<path d="M512 512c141.4 0 256-114.6 256-256S653.4 0 512 0 256 114.6 256 256s114.6 256 256 256zM512 614.4c-243.2 0-512 121.6-512 364.8v44.8h1024v-44.8c0-243.2-268.8-364.8-512-364.8z" fill="${AVATAR_COLORS[userData.avatarIdx]}"/>`;
+                // 如果拥有自定义头像，直接渲染高保真图，否则用默认颜色矢量图
+                const avatarWrap = seatDom.querySelector('.avatar-wrap');
+                if(userData.avatar) {
+                    avatarWrap.innerHTML = `<img src="${userData.avatar}"><span class="seat-index">${seatId===1?'房主':seatId+'麦'}</span>`;
+                } else {
+                    avatarWrap.innerHTML = `${BASE_SVG}<span class="seat-index">${seatId===1?'房主':seatId+'麦'}</span>`;
+                }
+                
                 const nameSpan = seatDom.querySelector('.user-name');
                 nameSpan.innerText = username;
                 nameSpan.style.color = "#ffffff";
                 if(!userData.isMuted) nameSpan.innerText += " 🎙️";
+
+                // 给强制禁言隐形按钮绑定回调目标
+                const mBtn = document.getElementById(`mute_btn_${seatId}`);
+                mBtn.onclick = () => execRemoteMuteCommand(username);
             }
         });
     }
 
-    // 核心修复：根据传回来的数字 UID 反向查找用户的名字，精准触发对应的闪烁麦位
+    // 头像上浮现动态表情气泡效果实现
+    function triggerAvatarExpressionAnimation(username, exprSymbol) {
+        const users = Object.keys(roomUsers);
+        const index = users.indexOf(username);
+        if(index !== -1 && index < 8) {
+            const popDom = document.getElementById(`pop_${index + 1}`);
+            if(popDom) {
+                popDom.innerText = exprSymbol;
+                popDom.style.display = 'block';
+                // 3秒后自动淡出消失
+                setTimeout(() => { popDom.style.display = 'none'; }, 3000);
+            }
+        }
+    }
+
     function syncSpeakingAnimation(uid, isSpeaking) {
         const users = Object.keys(roomUsers);
         const targetUsername = users.find(name => roomUsers[name].agoraUid == uid);
@@ -299,7 +564,7 @@
         const input = document.getElementById('msgInput');
         const text = input.value.trim();
         if(!text) return;
-        publishMsg({ type: 'chat', sender: myNickname, avatarIdx: selectedAvatarIndex, text: text });
+        publishMsg({ type: 'chat', sender: myNickname, avatar: myCustomAvatarBase64, text: text });
         input.value = '';
     }
 
@@ -307,14 +572,36 @@
         if(mqttClient && mqttClient.connected) mqttClient.publish(CHANNEL_NAME, JSON.stringify(obj), { qos: 0 });
     }
 
-    function appendChatMsg(sender, avatarIdx, text) {
+    function appendChatMsg(sender, avatarBase64, content, isImgPayload) {
         const chatArea = document.getElementById('chatArea');
         const msgDiv = document.createElement('div'); msgDiv.className = 'msg-item';
+        
         const senderSpan = document.createElement('span'); senderSpan.className = 'sender';
-        senderSpan.innerHTML = `<span style="width:7px;height:7px;background:${AVATAR_COLORS[avatarIdx]};border-radius:50%;display:inline-block;"></span> ` + (sender === myNickname ? '我: ' : `${sender}: `);
-        if(sender === myNickname) senderSpan.style.color = "#9d4edd";
-        const textSpan = document.createElement('span'); textSpan.textContent = text; 
-        msgDiv.appendChild(senderSpan); msgDiv.appendChild(textSpan);
+        
+        // 名字前挂载对应的微缩版自定义头像
+        let avatarTag = avatarBase64 ? `<img src="${avatarBase64}">` : `<span style="width:7px;height:7px;background:var(--accent-color);border-radius:50%;display:inline-block;"></span>`;
+        senderSpan.innerHTML = avatarTag + (sender === myNickname ? ' 我: ' : ` ${sender}: `);
+        if(sender === myNickname) senderSpan.style.color = "#b5179e";
+
+        msgDiv.appendChild(senderSpan);
+
+        if(isImgPayload) {
+            // 渲染图片
+            const cImg = document.createElement('img');
+            cImg.className = 'chat-img';
+            cImg.src = content;
+            cImg.onclick = () => { // 点击大图预览
+                const win = window.open();
+                win.document.write(`<iframe src="${content}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+            };
+            msgDiv.appendChild(cImg);
+        } else {
+            // 渲染文字
+            const textSpan = document.createElement('span');
+            textSpan.textContent = content; 
+            msgDiv.appendChild(textSpan);
+        }
+        
         chatArea.appendChild(msgDiv);
         chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
     }
@@ -327,7 +614,7 @@
     }
 
     function leaveRoom() {
-        if(confirm('确定退出吗？')) {
+        if(confirm('确定退出竞技语音房吗？')) {
             publishMsg({ type: 'leave', user: myNickname });
             window.location.reload();
         }
