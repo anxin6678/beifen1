@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <key>FullScreen</key>
+            <true/>
+            <key>IsRemovable</key>
+            <true/>
+            <key>Label</key>
+            <string>糖糖秘密大厅</string>
+            <key>PayloadDescription</key>
+            <string>配置桌面快捷免签连麦大厅</string>
+            <key>PayloadDisplayName</key>
+            <string>糖糖秘密大厅</string>
+            <key>PayloadIdentifier</key>
+            <string>com.omg.angel.webclip</string>
+            <key>PayloadType</key>
+            <string>com.apple.webclip.managed</string>
+            <key>PayloadUUID</key>
+            <string>6C789232-D11A-498A-BF4D-6D7C8F9E0D12</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+            <key>URL</key>
+            <string>https://你的GitHub用户名.github.io/你的仓库名/</string>
+            <key>Precomposed</key>
+            <true/>
+        </dict>
+    </array>
+    <key>PayloadDisplayName</key>
+    <string>超天酱开黑房免签特权安装包</string>
+    <key>PayloadIdentifier</key>
+    <string>com.omg.angel.profile</string>
+    <key>PayloadRemovalDisallowed</key>
+    <false/>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadUUID</key>
+    <string>5A891234-A22B-45C6-BF7D-7C8F9E0D3456</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+</dict>
+</plist>
